@@ -1,0 +1,25 @@
+# docker-compose.yml raiz — dono da rede orq-net e do serviço Nginx
+#
+# Os serviços de cada projeto (backend, frontend, db) são gerenciados
+# pelo deployer.js via múltiplos arquivos -f. Não use `include:` aqui.
+#
+# Para subir o es-builder:
+#   docker compose up -d nginx
+#
+# Para parar tudo:
+#   docker compose down
+
+services:
+  nginx:
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+    networks:
+      - orq-net
+
+networks:
+  orq-net:
+    driver: bridge

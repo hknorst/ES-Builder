@@ -1,0 +1,51 @@
+# compose/projeto-a.yml — serviços do projeto-a (backend, frontend, db)
+#
+# Gerenciado pelo deployer.js. Não subir manualmente em produção.
+# Para subir o projeto-a junto com o Nginx:
+#   docker compose -f docker-compose.yml -f compose/projeto-a.yml up -d \
+#     projeto-a-backend projeto-a-frontend projeto-a-db
+
+services:
+  projeto-a-db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    env_file:
+      - ../envs/projeto-a.env
+    volumes:
+      - projeto-a-db-data:/var/lib/postgresql/data
+    networks:
+      - orq-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  projeto-a-backend:
+    image: projeto-a-backend:current
+    restart: unless-stopped
+    env_file:
+      - ../envs/projeto-a.env
+    environment:
+      BASE_PATH: /projeto-a
+    depends_on:
+      projeto-a-db:
+        condition: service_healthy
+    networks:
+      - orq-net
+
+  projeto-a-frontend:
+    image: projeto-a-frontend:current
+    restart: unless-stopped
+    env_file:
+      - ../envs/projeto-a.env
+    networks:
+      - orq-net
+
+volumes:
+  projeto-a-db-data:
+
+networks:
+  orq-net:
+    external: true

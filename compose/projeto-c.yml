@@ -1,0 +1,51 @@
+# compose/projeto-c.yml — serviços do projeto-c (backend, frontend, db)
+#
+# Gerenciado pelo deployer.js. Não subir manualmente em produção.
+# Para subir o projeto-c junto com o Nginx:
+#   docker compose -f docker-compose.yml -f compose/projeto-c.yml up -d \
+#     projeto-c-backend projeto-c-frontend projeto-c-db
+
+services:
+  projeto-c-db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    env_file:
+      - ../envs/projeto-c.env
+    volumes:
+      - projeto-c-db-data:/var/lib/postgresql/data
+    networks:
+      - orq-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  projeto-c-backend:
+    image: projeto-c-backend:current
+    restart: unless-stopped
+    env_file:
+      - ../envs/projeto-c.env
+    environment:
+      BASE_PATH: /projeto-c
+    depends_on:
+      projeto-c-db:
+        condition: service_healthy
+    networks:
+      - orq-net
+
+  projeto-c-frontend:
+    image: projeto-c-frontend:current
+    restart: unless-stopped
+    env_file:
+      - ../envs/projeto-c.env
+    networks:
+      - orq-net
+
+volumes:
+  projeto-c-db-data:
+
+networks:
+  orq-net:
+    external: true

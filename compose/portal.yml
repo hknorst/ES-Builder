@@ -1,0 +1,51 @@
+# compose/portal.yml — serviços do portal (backend, frontend, db)
+#
+# Gerenciado pelo deployer.js. Não subir manualmente em produção.
+# Para subir o portal junto com o Nginx:
+#   docker compose -f docker-compose.yml -f compose/portal.yml up -d \
+#     portal-backend portal-frontend portal-db
+
+services:
+  portal-db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    env_file:
+      - ../envs/portal.env
+    volumes:
+      - portal-db-data:/var/lib/postgresql/data
+    networks:
+      - orq-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  portal-backend:
+    image: portal-backend:current
+    restart: unless-stopped
+    env_file:
+      - ../envs/portal.env
+    environment:
+      BASE_PATH: /portal
+    depends_on:
+      portal-db:
+        condition: service_healthy
+    networks:
+      - orq-net
+
+  portal-frontend:
+    image: portal-frontend:current
+    restart: unless-stopped
+    env_file:
+      - ../envs/portal.env
+    networks:
+      - orq-net
+
+volumes:
+  portal-db-data:
+
+networks:
+  orq-net:
+    external: true

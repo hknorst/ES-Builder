@@ -1,0 +1,21 @@
+# Dados locais do Claude Code (memória e configurações da sessão)
+.claude/
+
+# Estado persistido pelo deployer.js (gerado em runtime)
+state/
+
+# Logs do deployer e watcher (gerados em runtime)
+logs/
+
+# Variáveis de ambiente reais (geradas pelo setup.sh)
+.env
+envs/*.env
+
+# Repositórios clonados dos grupos (gerenciados pelo deployer.js)
+projects/
+
+# Chave pública de deploy gerada pelo bootstrap.sh (específica de cada servidor)
+deploy-key.pub
+
+# Dependências Node (caso alguém adicione package.json no futuro)
+node_modules/

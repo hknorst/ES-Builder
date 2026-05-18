@@ -1,0 +1,51 @@
+# compose/projeto-b.yml — serviços do projeto-b (backend, frontend, db)
+#
+# Gerenciado pelo deployer.js. Não subir manualmente em produção.
+# Para subir o projeto-b junto com o Nginx:
+#   docker compose -f docker-compose.yml -f compose/projeto-b.yml up -d \
+#     projeto-b-backend projeto-b-frontend projeto-b-db
+
+services:
+  projeto-b-db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    env_file:
+      - ../envs/projeto-b.env
+    volumes:
+      - projeto-b-db-data:/var/lib/postgresql/data
+    networks:
+      - orq-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  projeto-b-backend:
+    image: projeto-b-backend:current
+    restart: unless-stopped
+    env_file:
+      - ../envs/projeto-b.env
+    environment:
+      BASE_PATH: /projeto-b
+    depends_on:
+      projeto-b-db:
+        condition: service_healthy
+    networks:
+      - orq-net
+
+  projeto-b-frontend:
+    image: projeto-b-frontend:current
+    restart: unless-stopped
+    env_file:
+      - ../envs/projeto-b.env
+    networks:
+      - orq-net
+
+volumes:
+  projeto-b-db-data:
+
+networks:
+  orq-net:
+    external: true

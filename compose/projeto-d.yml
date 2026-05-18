@@ -1,0 +1,51 @@
+# compose/projeto-d.yml — serviços do projeto-d (backend, frontend, db)
+#
+# Gerenciado pelo deployer.js. Não subir manualmente em produção.
+# Para subir o projeto-d junto com o Nginx:
+#   docker compose -f docker-compose.yml -f compose/projeto-d.yml up -d \
+#     projeto-d-backend projeto-d-frontend projeto-d-db
+
+services:
+  projeto-d-db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    env_file:
+      - ../envs/projeto-d.env
+    volumes:
+      - projeto-d-db-data:/var/lib/postgresql/data
+    networks:
+      - orq-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  projeto-d-backend:
+    image: projeto-d-backend:current
+    restart: unless-stopped
+    env_file:
+      - ../envs/projeto-d.env
+    environment:
+      BASE_PATH: /projeto-d
+    depends_on:
+      projeto-d-db:
+        condition: service_healthy
+    networks:
+      - orq-net
+
+  projeto-d-frontend:
+    image: projeto-d-frontend:current
+    restart: unless-stopped
+    env_file:
+      - ../envs/projeto-d.env
+    networks:
+      - orq-net
+
+volumes:
+  projeto-d-db-data:
+
+networks:
+  orq-net:
+    external: true
