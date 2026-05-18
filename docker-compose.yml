@@ -22,4 +22,5 @@ services:
 
 networks:
   orq-net:
+    name: orq-net
     driver: bridge
