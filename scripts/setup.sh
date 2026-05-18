@@ -95,6 +95,17 @@ clone_or_update "projeto-e"
 echo ""
 echo "=== Criando arquivos .env ==="
 
+# JWT_SECRET gerado uma vez e compartilhado entre todos os projetos.
+# Se algum .env já existir com um secret, reutiliza para manter consistência.
+EXISTING_SECRET=$(grep -h "^JWT_SECRET=.\+" "$ROOT_DIR/envs/"*.env 2>/dev/null | head -1 | cut -d= -f2 || true)
+if [ -n "$EXISTING_SECRET" ]; then
+  JWT_SECRET="$EXISTING_SECRET"
+  ok "JWT_SECRET existente reutilizado (${JWT_SECRET:0:8}...)"
+else
+  JWT_SECRET=$(openssl rand -hex 32)
+  ok "JWT_SECRET gerado (${JWT_SECRET:0:8}...)"
+fi
+
 create_env() {
   local nome="$1"
   local env_file="$ROOT_DIR/envs/${nome}.env"
@@ -118,7 +129,7 @@ BASE_PATH=/${nome}
 
 # Chave secreta JWT — deve ser IDÊNTICA em todos os projetos
 # O portal emite o token; os outros projetos validam com esta mesma chave
-JWT_SECRET=
+JWT_SECRET=${JWT_SECRET}
 
 # URL de conexão com o banco de dados PostgreSQL deste projeto
 # Formato: postgresql://usuario:senha@${nome}-db:5432/nome_do_banco

@@ -127,7 +127,7 @@ O script vai:
 
 ## Passo 5 — Preencher as variáveis de ambiente
 
-Cada projeto tem um arquivo `envs/projeto-x.env`. Preencha com os grupos durante a aula ou defina valores padrão para teste:
+O `setup.sh` já gerou os arquivos `envs/*.env` e preencheu automaticamente o `JWT_SECRET` com o mesmo valor em todos os projetos. Só é necessário preencher as credenciais do banco de cada grupo:
 
 ```bash
 nano envs/portal.env
@@ -138,26 +138,23 @@ nano envs/projeto-d.env
 nano envs/projeto-e.env
 ```
 
-**Variáveis que precisam ser preenchidas em todos os arquivos:**
+**Variáveis que precisam ser preenchidas em cada arquivo:**
 
 ```bash
-# Igual em TODOS os projetos — o portal emite, os outros validam
-JWT_SECRET=uma-chave-longa-e-aleatoria-gerada-por-voce
-
-# Específico de cada projeto (trocar projeto-x pelo nome real)
+# Específico de cada projeto (trocar pelo nome e senha reais)
 POSTGRES_USER=appuser
 POSTGRES_PASSWORD=senha-segura
 POSTGRES_DB=projeto_x_db
 DATABASE_URL=postgresql://appuser:senha-segura@projeto-x-db:5432/projeto_x_db
 ```
 
-**Gerar um JWT_SECRET seguro:**
+> `JWT_SECRET` já foi gerado e é idêntico em todos os projetos. Não é necessário alterar.
+
+**Para ver o JWT_SECRET gerado (ex: para depuração):**
 
 ```bash
-openssl rand -hex 32
+grep JWT_SECRET envs/portal.env
 ```
-
-> Use o mesmo valor gerado para todos os projetos.
 
 ---
 
