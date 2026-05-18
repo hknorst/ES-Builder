@@ -9,7 +9,7 @@ Este documento é para o professor ou monitor responsável pelo servidor. Cobre 
 | Quem | Faz o quê |
 |------|-----------|
 | **Admin (você)** | Instalar dependências, configurar servidor, preencher `.env`, gerenciar Deploy Keys, iniciar watcher |
-| **Grupos** | Configurar os próprios projetos (Dockerfile, vite.config, URL da API) e fazer push na branch `deploy` |
+| **Grupos** | Configurar os próprios projetos (Dockerfile, nginx.conf) e fazer push na branch `deploy` |
 
 ---
 

@@ -62,8 +62,9 @@ postgresql://USUARIO:SENHA@projeto-x-db:5432/NOME_DO_BANCO
 ### Checklist rápido
 
 - [ ] `frontend/Dockerfile` com `ARG VITE_BASE_PATH` e `--base` no build
+- [ ] `frontend/nginx.conf` com `try_files` para React Router
 - [ ] `backend/Dockerfile` funcional
-- [ ] URL da API apontando para `/projeto-x/api/` (não para o backend diretamente)
+- [ ] URL da API usando `import.meta.env.BASE_URL` (automático — não hardcode)
 - [ ] Variáveis de ambiente definidas no servidor
 
 ---
@@ -247,19 +248,15 @@ BASE_PATH=/projeto-a
 
 **Variáveis disponíveis no frontend (via `import.meta.env`):**
 
-Apenas variáveis prefixadas com `VITE_` ficam disponíveis no bundle do frontend.
-
-```bash
-VITE_BASE_PATH=/projeto-a/
-```
-
-No código do frontend, acesse assim:
+O servidor injeta `--base=/projeto-x/` no build via `--build-arg VITE_BASE_PATH`. O Vite expõe esse valor automaticamente como `import.meta.env.BASE_URL` — variável padrão do Vite, sempre disponível sem configuração extra.
 
 ```ts
-const basePath = import.meta.env.VITE_BASE_PATH  // '/projeto-a/'
+import.meta.env.BASE_URL  // '/projeto-a/' em deploy, '/' em local
 ```
 
-> `VITE_BASE_PATH` já é injetado automaticamente pelo servidor no build. Vocês não precisam criar essa variável — ela já existe.
+Use `BASE_URL` para construir a URL da API (ver seção 4). Vocês não precisam criar nem definir essa variável.
+
+> Apenas variáveis prefixadas com `VITE_` ficam disponíveis no bundle. `BASE_URL` é a exceção: é uma variável especial do Vite e sempre funciona.
 
 ---
 

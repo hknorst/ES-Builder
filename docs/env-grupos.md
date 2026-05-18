@@ -141,14 +141,19 @@ app.use(`${base}/api`, router)
 
 ### `VITE_BASE_PATH`
 
-Usada apenas no **build** do frontend para definir o subpath dos assets.
+Usada como **argumento de build** do Docker para definir o subpath dos assets do frontend.
 
 - **No servidor:** o deployer injeta via `--build-arg` automaticamente. O grupo não precisa definir.
 - **Em local:** deixe `/` (padrão) para o frontend funcionar em `http://localhost:5173`
 
+O Vite recebe esse valor via `--base` e o expõe como `import.meta.env.BASE_URL`. No código do frontend, use sempre `BASE_URL` — é a variável padrão do Vite e não depende de nenhuma configuração extra:
+
 ```ts
-// Acessar no código do frontend (dentro de src/)
-const base = import.meta.env.VITE_BASE_PATH  // '/projeto-a/' em deploy, '/' em local
+// ✅ Preferido — variável padrão do Vite
+const basePath = import.meta.env.BASE_URL  // '/projeto-a/' em deploy, '/' em local
+
+// Exemplo de uso para API
+const API_BASE = `${import.meta.env.BASE_URL}api`
 ```
 
 ---
