@@ -125,36 +125,25 @@ O script vai:
 
 ---
 
-## Passo 5 — Preencher as variáveis de ambiente
+## Passo 5 — Verificar as variáveis de ambiente
 
-O `setup.sh` já gerou os arquivos `envs/*.env` e preencheu automaticamente o `JWT_SECRET` com o mesmo valor em todos os projetos. Só é necessário preencher as credenciais do banco de cada grupo:
+O `setup.sh` gerou todos os arquivos `envs/*.env` com credenciais únicas por projeto:
 
-```bash
-nano envs/portal.env
-nano envs/projeto-a.env
-nano envs/projeto-b.env
-nano envs/projeto-c.env
-nano envs/projeto-d.env
-nano envs/projeto-e.env
-```
+| Variável | Geração |
+|----------|---------|
+| `JWT_SECRET` | Uma chave compartilhada, igual em todos os projetos |
+| `POSTGRES_USER` | Derivado do nome do projeto (ex: `projeto_a_user`) |
+| `POSTGRES_PASSWORD` | Senha aleatória por projeto |
+| `POSTGRES_DB` | Derivado do nome do projeto (ex: `projeto_a_db`) |
+| `DATABASE_URL` | Montada automaticamente das credenciais acima |
 
-**Variáveis que precisam ser preenchidas em cada arquivo:**
-
-```bash
-# Específico de cada projeto (trocar pelo nome e senha reais)
-POSTGRES_USER=appuser
-POSTGRES_PASSWORD=senha-segura
-POSTGRES_DB=projeto_x_db
-DATABASE_URL=postgresql://appuser:senha-segura@projeto-x-db:5432/projeto_x_db
-```
-
-> `JWT_SECRET` já foi gerado e é idêntico em todos os projetos. Não é necessário alterar.
-
-**Para ver o JWT_SECRET gerado (ex: para depuração):**
+Não é necessário editar nada. Para revisar ou depurar:
 
 ```bash
-grep JWT_SECRET envs/portal.env
+cat envs/projeto-a.env
 ```
+
+> Se precisar regenerar as credenciais de um projeto específico (ex: comprometimento de senha), apague o arquivo e rode `bash scripts/setup.sh` novamente — apenas o arquivo ausente será recriado.
 
 ---
 

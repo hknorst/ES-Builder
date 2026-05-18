@@ -96,9 +96,10 @@ echo ""
 echo "=== Criando arquivos .env ==="
 
 # JWT_SECRET gerado uma vez e compartilhado entre todos os projetos.
-# Se algum .env já existir com um secret, reutiliza para manter consistência.
-EXISTING_SECRET=$(grep -h "^JWT_SECRET=.\+" "$ROOT_DIR/envs/"*.env 2>/dev/null | head -1 | cut -d= -f2 || true)
-if [ -n "$EXISTING_SECRET" ]; then
+# Reutiliza apenas se já existir um valor com comprimento mínimo seguro (>=32 chars).
+# Valor curto ou vazio é tratado como dummy e substituído.
+EXISTING_SECRET=$(grep -h "^JWT_SECRET=" "$ROOT_DIR/envs/"*.env 2>/dev/null | head -1 | cut -d= -f2 || true)
+if [ ${#EXISTING_SECRET} -ge 32 ]; then
   JWT_SECRET="$EXISTING_SECRET"
   ok "JWT_SECRET existente reutilizado (${JWT_SECRET:0:8}...)"
 else
@@ -110,35 +111,41 @@ create_env() {
   local nome="$1"
   local env_file="$ROOT_DIR/envs/${nome}.env"
 
-  if [ -f "$env_file" ]; then
-    echo "  [$nome] envs/${nome}.env já existe — pulando."
+  # Considera configurado se DATABASE_URL já estiver preenchida.
+  # Protege credenciais existentes (banco pode já ter sido inicializado com elas).
+  # Arquivo vazio ou incompleto é tratado como não configurado e reescrito.
+  if grep -q "^DATABASE_URL=postgresql://" "$env_file" 2>/dev/null; then
+    echo "  [$nome] envs/${nome}.env já configurado — pulando."
     return
   fi
+
+  # Identificadores PostgreSQL não aceitam hífen — converte para underscore
+  local db_user="${nome//-/_}_user"
+  local db_name="${nome//-/_}_db"
+  local db_password
+  db_password=$(openssl rand -hex 16)
 
   echo "  [$nome] Criando envs/${nome}.env..."
   cat > "$env_file" <<EOF
 # Variáveis de ambiente para ${nome}
-# Preencha antes de iniciar o watcher
+# Gerado automaticamente pelo setup.sh — não editar manualmente
 
 # VITE_BASE_PATH é usado no build do frontend (Vite) via --build-arg
-# O deployer.js passa este valor dinamicamente; manter aqui apenas para referência
 VITE_BASE_PATH=/${nome}/
 
 # BASE_PATH é usado em runtime pelo backend para prefixar rotas
 BASE_PATH=/${nome}
 
-# Chave secreta JWT — deve ser IDÊNTICA em todos os projetos
-# O portal emite o token; os outros projetos validam com esta mesma chave
+# Chave secreta JWT — gerada no setup, idêntica em todos os projetos
 JWT_SECRET=${JWT_SECRET}
 
-# URL de conexão com o banco de dados PostgreSQL deste projeto
-# Formato: postgresql://usuario:senha@${nome}-db:5432/nome_do_banco
-DATABASE_URL=
+# Credenciais do PostgreSQL — geradas no setup, específicas deste projeto
+POSTGRES_USER=${db_user}
+POSTGRES_PASSWORD=${db_password}
+POSTGRES_DB=${db_name}
 
-# Credenciais do PostgreSQL (usadas pelo container postgres:16-alpine)
-POSTGRES_USER=
-POSTGRES_PASSWORD=
-POSTGRES_DB=
+# URL de conexão montada a partir das credenciais acima
+DATABASE_URL=postgresql://${db_user}:${db_password}@${nome}-db:5432/${db_name}
 EOF
 }
 

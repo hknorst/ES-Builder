@@ -1,3 +1,9 @@
 {
-  "cSpell.language": "en,pt-BR"
+  "cSpell.language": "en,pt-BR",
+  "cSpell.enabledFileTypes": {
+    "shellscript": true,
+    "markdown": true,
+    "json": true,
+    "yaml": true
+  }
 }

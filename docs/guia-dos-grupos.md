@@ -229,23 +229,27 @@ export default api
 
 ## 5. Variáveis de ambiente
 
-O servidor tem um arquivo `envs/projeto-x.env` com as variáveis do seu projeto.
+O servidor gera e injeta todas as variáveis automaticamente durante o setup. Vocês não precisam configurar nada no servidor — apenas usar as variáveis no código.
 
-- **`JWT_SECRET`** — gerado automaticamente durante o setup do servidor. Já está preenchido e é idêntico em todos os projetos. Vocês não precisam fazer nada.
-- **`DATABASE_URL` e credenciais do banco** — definidos pelo professor na primeira configuração, com os valores específicos do seu grupo.
+| Variável | O que é | Quem configura |
+|----------|---------|----------------|
+| `JWT_SECRET` | Chave JWT compartilhada entre todos os projetos | Gerado no setup |
+| `DATABASE_URL` | String de conexão completa com o banco | Gerado no setup |
+| `POSTGRES_USER/PASSWORD/DB` | Credenciais exclusivas do seu projeto | Gerado no setup |
+| `BASE_PATH` | Prefixo de rota (ex: `/projeto-a`) | Injetado pelo servidor |
 
-> Consulte o [env-grupos.md](env-grupos.md) para o template completo de `.env` para desenvolvimento local e a explicação de cada variável.
+> Consulte o [env-grupos.md](env-grupos.md) para o template de `.env` para desenvolvimento local.
 
 **Variáveis disponíveis no backend (via `process.env`):**
 
 ```bash
-# String de conexão com o banco de dados (host = nome do container, nunca localhost)
-DATABASE_URL=postgresql://usuario:senha@projeto-a-db:5432/meu_banco
+# String de conexão com o banco (host = container, nunca localhost)
+DATABASE_URL=postgresql://projeto_a_user:<senha>@projeto-a-db:5432/projeto_a_db
 
-# Chave secreta JWT — gerada no setup, igual em todos os projetos
-JWT_SECRET=<injetado automaticamente pelo servidor>
+# Chave JWT — gerada no setup, idêntica em todos os projetos
+JWT_SECRET=<injetado automaticamente>
 
-# Prefixo de rota do projeto (ex: /projeto-a)
+# Prefixo de rota do projeto
 BASE_PATH=/projeto-a
 ```
 
@@ -402,7 +406,7 @@ Se precisar remover ou renomear, faça em duas fases: primeiro deploy deixa o ca
 | Assets (JS/CSS) com erro 404 | `ARG` ausente no Dockerfile ou `--base` não passado | Confirmar `ARG VITE_BASE_PATH=/` e `npx vite build --base="${VITE_BASE_PATH}"` |
 | `VITE_BASE_PATH` ignorado no build | `ARG` não declarado no Dockerfile | Adicionar `ARG VITE_BASE_PATH=/` antes do `RUN npx vite build` |
 | API retorna erro de rede | Frontend apontando para `localhost` | Usar `` `${import.meta.env.BASE_URL}api` `` como base URL |
-| `Cannot connect to database` | `DATABASE_URL` com `localhost` | Usar `projeto-x-db` como hostname |
+| `Cannot connect to database` | Conexão hardcoded no código em vez de `process.env.DATABASE_URL` | Usar sempre `process.env.DATABASE_URL` |
 | React Router mostra 404 ao navegar | Nginx do frontend não configurado para SPA | Adicionar `try_files $uri /index.html` no `nginx.conf` |
 | Token JWT inválido | `JWT_SECRET` não injetado no servidor | Pedir ao professor para verificar `envs/projeto-x.env` no servidor |
 
@@ -423,8 +427,8 @@ Se precisar remover ou renomear, faça em duas fases: primeiro deploy deixa o ca
    baseURL: `${import.meta.env.BASE_URL}api`   ← automático, nunca hardcode
 
 4. Backend
-   DATABASE_URL com host = projeto-x-db  ← nunca localhost
-   JWT_SECRET via process.env.JWT_SECRET  ← injetado pelo servidor, não configurar
+   DATABASE_URL via process.env.DATABASE_URL  ← injetado pelo servidor, não hardcode
+   JWT_SECRET via process.env.JWT_SECRET      ← injetado pelo servidor, não hardcode
 
 5. Deploy
    git push origin deploy
