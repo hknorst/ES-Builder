@@ -61,38 +61,24 @@ postgresql://USUARIO:SENHA@projeto-x-db:5432/NOME_DO_BANCO
 
 ### Checklist rápido
 
-- [ ] `vite.config.ts` com `base` dinâmico
-- [ ] `frontend/Dockerfile` com `ARG VITE_BASE_PATH`
+- [ ] `frontend/Dockerfile` com `ARG VITE_BASE_PATH` e `--base` no build
 - [ ] `backend/Dockerfile` funcional
 - [ ] URL da API apontando para `/projeto-x/api/` (não para o backend diretamente)
 - [ ] Variáveis de ambiente definidas no servidor
 
 ---
 
-## 1. vite.config.ts — configuração obrigatória
+## 1. vite.config.ts — nenhuma alteração necessária
 
-Sem isso, os assets (JS, CSS, imagens) quebram quando o frontend é servido em subpath.
+O servidor passa `--base` diretamente para o CLI do Vite durante o build. A flag `--base` tem precedência sobre qualquer configuração no `vite.config.ts`, então **vocês não precisam tocar nesse arquivo**.
 
-```ts
-// vite.config.ts
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-
-export default defineConfig({
-  plugins: [react()],
-  base: process.env.VITE_BASE_PATH || '/',
-})
-```
-
-**Por que `process.env` e não `import.meta.env`?**
-
-O `vite.config.ts` roda no **Node.js** durante o build, não no navegador. Por isso usa `process.env`. O `import.meta.env` só existe dentro do código da aplicação (dentro do `src/`), não no arquivo de configuração.
+Mantenham o `vite.config.ts` como está no projeto de vocês.
 
 ---
 
 ## 2. Dockerfile do frontend — configuração obrigatória
 
-O servidor passa `--build-arg VITE_BASE_PATH=/projeto-x/` automaticamente ao fazer o build. Se o `ARG` não estiver declarado no Dockerfile, o Docker **ignora silenciosamente** o argumento e o site quebra.
+O servidor passa `--build-arg VITE_BASE_PATH=/projeto-x/` automaticamente. O Dockerfile precisa declarar o `ARG` e repassá-lo para o Vite via `--base`:
 
 ```dockerfile
 # frontend/Dockerfile
@@ -107,12 +93,11 @@ RUN npm ci
 
 COPY . .
 
-# OBRIGATÓRIO: declarar o ARG antes de usar
-# Sem isso, o --build-arg passado pelo servidor é ignorado
+# OBRIGATÓRIO: declarar o ARG — sem isso o --build-arg é ignorado pelo Docker
 ARG VITE_BASE_PATH=/
-ENV VITE_BASE_PATH=$VITE_BASE_PATH
 
-RUN npm run build
+# --base tem precedência sobre vite.config.ts: não é necessário editar esse arquivo
+RUN npx vite build --base="${VITE_BASE_PATH}"
 
 # ── Estágio de produção ───────────────────────────────────────────
 FROM nginx:alpine
@@ -125,6 +110,12 @@ COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80
 ```
+
+> **Se o build do seu projeto faz mais do que só `vite build`** (ex: `tsc -b && vite build`), separe as etapas:
+> ```dockerfile
+> ARG VITE_BASE_PATH=/
+> RUN npx tsc --noEmit && npx vite build --base="${VITE_BASE_PATH}"
+> ```
 
 **nginx.conf** que deve acompanhar o frontend:
 
@@ -224,6 +215,8 @@ export default api
 ## 5. Variáveis de ambiente
 
 O servidor tem um arquivo `envs/projeto-x.env` com as variáveis do seu projeto. O professor/monitor vai preencher junto com vocês na primeira configuração.
+
+> Consulte o [env-grupos.md](env-grupos.md) para o template completo de `.env` para desenvolvimento local e a explicação de cada variável.
 
 **Variáveis disponíveis no backend (via `process.env`):**
 
@@ -392,8 +385,8 @@ Se precisar remover ou renomear, faça em duas fases: primeiro deploy deixa o ca
 
 | Sintoma | Causa provável | Solução |
 |---------|---------------|---------|
-| Assets (JS/CSS) com erro 404 | `base` ausente no `vite.config.ts` | Adicionar `base: process.env.VITE_BASE_PATH \|\| '/'` |
-| `VITE_BASE_PATH` ignorado no build | `ARG` não declarado no Dockerfile | Adicionar `ARG VITE_BASE_PATH=/` antes do `RUN npm run build` |
+| Assets (JS/CSS) com erro 404 | `ARG` ausente no Dockerfile ou `--base` não passado | Confirmar `ARG VITE_BASE_PATH=/` e `npx vite build --base="${VITE_BASE_PATH}"` |
+| `VITE_BASE_PATH` ignorado no build | `ARG` não declarado no Dockerfile | Adicionar `ARG VITE_BASE_PATH=/` antes do `RUN npx vite build` |
 | API retorna erro de rede | Frontend apontando para `localhost` | Usar `/projeto-x/api` como base URL |
 | `Cannot connect to database` | `DATABASE_URL` com `localhost` | Usar `projeto-x-db` como hostname |
 | React Router mostra 404 ao navegar | Nginx do frontend não configurado para SPA | Adicionar `try_files $uri /index.html` no `nginx.conf` |
@@ -404,24 +397,21 @@ Se precisar remover ou renomear, faça em duas fases: primeiro deploy deixa o ca
 ## Resumo em uma página
 
 ```
-1. vite.config.ts
-   base: process.env.VITE_BASE_PATH || '/'
-
-2. frontend/Dockerfile
+1. frontend/Dockerfile
    ARG VITE_BASE_PATH=/
-   ENV VITE_BASE_PATH=$VITE_BASE_PATH
-   RUN npm run build
+   RUN npx vite build --base="${VITE_BASE_PATH}"
+   (vite.config.ts não precisa de alteração)
 
-3. frontend/nginx.conf
+2. frontend/nginx.conf
    try_files $uri $uri/ /index.html;
 
-4. URL da API no frontend
+3. URL da API no frontend
    baseURL: '/projeto-x/api'   ← nunca localhost ou hostname interno
 
-5. Backend
+4. Backend
    DATABASE_URL com host = projeto-x-db  ← nunca localhost
    JWT_SECRET via process.env.JWT_SECRET
 
-6. Deploy
+5. Deploy
    git push origin deploy
 ```

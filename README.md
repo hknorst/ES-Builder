@@ -8,7 +8,8 @@ Ambiente de deploy centralizado para 6 projetos acadêmicos com reverse proxy Ng
 |-----------|-----------|
 | [docs/arquitetura.md](docs/arquitetura.md) | Diagramas de módulos, fluxo de deploy e infraestrutura de containers |
 | [docs/guia-admin.md](docs/guia-admin.md) | Professor / monitor — instalar, configurar e operar o servidor |
-| [docs/guia-dos-grupos.md](docs/guia-dos-grupos.md) | Grupos de alunos — configurar Dockerfile, vite.config, API e fazer deploy |
+| [docs/guia-dos-grupos.md](docs/guia-dos-grupos.md) | Grupos de alunos — configurar Dockerfile, API e fazer deploy |
+| [docs/env-grupos.md](docs/env-grupos.md) | Template de `.env` para desenvolvimento local e referência de todas as variáveis |
 
 ---
 
