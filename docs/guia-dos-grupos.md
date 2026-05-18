@@ -167,7 +167,7 @@ CMD ["node", "dist/index.js"]
 
 ---
 
-## 4. URL da API no frontend — erro mais comum
+## 4. URL da API no frontend — automático, sem configuração manual
 
 O frontend **nunca** deve apontar diretamente para o container do backend.
 
@@ -178,19 +178,33 @@ const API_BASE = 'http://projeto-a-backend:3000'
 // ❌ ERRADO — não funciona no navegador do usuário
 const API_BASE = 'http://localhost:3000'
 
-// ✅ CORRETO — passa pelo Nginx, funciona sempre
+// ❌ ERRADO — hardcode: quebra se o projeto mudar de nome
 const API_BASE = '/projeto-a/api'
+
+// ✅ CORRETO — automático, funciona em local e em deploy
+const API_BASE = `${import.meta.env.BASE_URL}api`
 ```
+
+**Como funciona a automação?**
+
+O servidor injeta `--base=/projeto-x/` no build do frontend. O Vite expõe esse valor automaticamente como `import.meta.env.BASE_URL`. Resultado:
+
+| Ambiente | `BASE_URL` | `API_BASE` |
+|----------|-----------|-----------|
+| Local (`npm run dev`) | `/` | `/api` |
+| Deploy no servidor | `/projeto-a/` | `/projeto-a/api` |
+
+Vocês não precisam tocar nesse valor — ele muda automaticamente por projeto.
 
 **Por que passar pelo Nginx?**
 
-O navegador do usuário não tem acesso direto aos containers. O único ponto de entrada é o Nginx na porta 80. O Nginx recebe a requisição em `/projeto-a/api/qualquer-rota`, remove o prefixo e repassa para o backend.
+O navegador não tem acesso direto aos containers. O único ponto de entrada é o Nginx na porta 80. Ele recebe a requisição em `/projeto-a/api/qualquer-rota`, remove o prefixo e repassa para o backend.
 
 **Exemplo prático com fetch:**
 
 ```ts
 // src/services/api.ts
-const API_BASE = '/projeto-a/api'  // substitua pelo nome do seu projeto
+const API_BASE = `${import.meta.env.BASE_URL}api`
 
 export async function getUsuarios() {
   const res = await fetch(`${API_BASE}/usuarios`)
@@ -204,7 +218,7 @@ export async function getUsuarios() {
 import axios from 'axios'
 
 const api = axios.create({
-  baseURL: '/projeto-a/api',
+  baseURL: `${import.meta.env.BASE_URL}api`,
 })
 
 export default api
@@ -387,7 +401,7 @@ Se precisar remover ou renomear, faça em duas fases: primeiro deploy deixa o ca
 |---------|---------------|---------|
 | Assets (JS/CSS) com erro 404 | `ARG` ausente no Dockerfile ou `--base` não passado | Confirmar `ARG VITE_BASE_PATH=/` e `npx vite build --base="${VITE_BASE_PATH}"` |
 | `VITE_BASE_PATH` ignorado no build | `ARG` não declarado no Dockerfile | Adicionar `ARG VITE_BASE_PATH=/` antes do `RUN npx vite build` |
-| API retorna erro de rede | Frontend apontando para `localhost` | Usar `/projeto-x/api` como base URL |
+| API retorna erro de rede | Frontend apontando para `localhost` | Usar `` `${import.meta.env.BASE_URL}api` `` como base URL |
 | `Cannot connect to database` | `DATABASE_URL` com `localhost` | Usar `projeto-x-db` como hostname |
 | React Router mostra 404 ao navegar | Nginx do frontend não configurado para SPA | Adicionar `try_files $uri /index.html` no `nginx.conf` |
 | Token JWT inválido | `JWT_SECRET` diferente entre projetos | Confirmar com o professor que a chave é a mesma |
@@ -406,7 +420,7 @@ Se precisar remover ou renomear, faça em duas fases: primeiro deploy deixa o ca
    try_files $uri $uri/ /index.html;
 
 3. URL da API no frontend
-   baseURL: '/projeto-x/api'   ← nunca localhost ou hostname interno
+   baseURL: `${import.meta.env.BASE_URL}api`   ← automático, nunca hardcode
 
 4. Backend
    DATABASE_URL com host = projeto-x-db  ← nunca localhost
