@@ -21,6 +21,32 @@ function composeUp(project) {
   );
 }
 
+// Remove imagens antigas do projeto, mantendo apenas :current e :previous
+function limparImagensAntigas(project) {
+  const repos = [`${project}-backend`, `${project}-frontend`];
+  const manter = new Set(['current', 'previous']);
+
+  for (const repo of repos) {
+    let output;
+    try {
+      output = run(`docker images --format "{{.Tag}}" ${repo}`);
+    } catch {
+      continue;
+    }
+
+    for (const tag of output.split('\n').filter(Boolean)) {
+      if (manter.has(tag) || tag === '<none>') continue;
+      try {
+        run(`docker rmi ${repo}:${tag}`);
+        log(project, `Imagem antiga removida: ${repo}:${tag}`);
+      } catch (err) {
+        // Imagem pode estar em uso ou já removida — não é erro crítico
+        log(project, `Não foi possível remover ${repo}:${tag} — ${err.message}`);
+      }
+    }
+  }
+}
+
 // Para os containers do projeto (sem remover volumes)
 function composeStop(project) {
   const composeFile = path.join(ROOT_DIR, 'compose', `${project}.yml`);
@@ -129,6 +155,9 @@ async function deployProject(project) {
       lastFailedSha: null,
       lastDeployAt: new Date().toISOString(),
     });
+
+    // Remover imagens SHA antigas — manter apenas :current e :previous
+    limparImagensAntigas(project);
 
     log(project, `Deploy concluído com sucesso. SHA: ${sha}`);
   } catch (err) {

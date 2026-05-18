@@ -6,13 +6,13 @@ Este documento explica tudo que seu grupo precisa fazer para que o projeto funci
 
 ## Como funciona a infraestrutura (versão simples)
 
-Existe um servidor central rodando um **Nginx** como porteiro. Todo o tráfego passa por ele.
+Existe um servidor central rodando um **Nginx** como portal. Todo o tráfego passa por ele.
 
 ```
 Navegador
    │
    ▼
-Nginx (porteiro)
+Nginx (portal)
    ├── /projeto-a/        → frontend do grupo A
    ├── /projeto-a/api/    → backend do grupo A
    ├── /projeto-b/        → frontend do grupo B
