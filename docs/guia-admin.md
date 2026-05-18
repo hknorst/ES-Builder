@@ -242,8 +242,11 @@ docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 docker images | grep projeto-a
 # projeto-a-backend   current    abc123...
 # projeto-a-backend   previous   def456...
-# projeto-a-backend   <sha>      abc123...
+# projeto-a-frontend  current    abc123...
+# projeto-a-frontend  previous   def456...
 ```
+
+> O deployer mantém apenas as tags `:current` e `:previous` — tags SHA são removidas após cada deploy bem-sucedido para não acumular disco.
 
 ---
 
@@ -261,15 +264,7 @@ docker compose -f docker-compose.yml -f compose/projeto-a.yml up -d \
   projeto-a-backend projeto-a-frontend projeto-a-db
 ```
 
-Para voltar para um SHA específico (ver `docker images`):
-
-```bash
-docker tag projeto-a-backend:abc1234 projeto-a-backend:current
-docker tag projeto-a-frontend:abc1234 projeto-a-frontend:current
-
-docker compose -f docker-compose.yml -f compose/projeto-a.yml up -d \
-  projeto-a-backend projeto-a-frontend projeto-a-db
-```
+> O sistema mantém apenas `:current` e `:previous` — não é possível rollback para um SHA específico. Se precisar de uma versão mais antiga, faça um novo commit revertendo as mudanças e dê push na branch `deploy`.
 
 ---
 
@@ -309,35 +304,47 @@ docker compose restart nginx
 
 O rollback automático não restaura o banco — só as imagens de código. Para proteger os dados dos grupos em caso de falha de migration ou acidente:
 
-**Backup de um projeto:**
-
-```bash
-# Exporta o banco para um arquivo .sql no servidor
-docker exec projeto-a-db pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB" \
-  > ~/backups/projeto-a-$(date +%Y%m%d-%H%M).sql
-```
-
 **Criar diretório de backups antes de usar:**
 
 ```bash
 mkdir -p ~/backups
 ```
 
+**Backup de um projeto:**
+
+```bash
+# `docker compose exec` usa o nome do serviço, não do container — funciona sempre.
+# As variáveis POSTGRES_USER e POSTGRES_DB são lidas de dentro do container.
+# O -T desativa pseudo-TTY para que o redirecionamento > funcione corretamente.
+cd ~/es-builder
+docker compose -f docker-compose.yml -f compose/projeto-a.yml \
+  exec -T projeto-a-db sh -c 'pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"' \
+  > ~/backups/projeto-a-$(date +%Y%m%d-%H%M).sql
+```
+
 **Restore de um backup:**
 
 ```bash
+cd ~/es-builder
+
 # Para o backend antes de restaurar (evita conexões abertas)
 docker compose -f docker-compose.yml -f compose/projeto-a.yml stop projeto-a-backend
 
 # Restaura o banco
-docker exec -i projeto-a-db psql -U "$POSTGRES_USER" "$POSTGRES_DB" \
+docker compose -f docker-compose.yml -f compose/projeto-a.yml \
+  exec -T projeto-a-db sh -c 'psql -U "$POSTGRES_USER" "$POSTGRES_DB"' \
   < ~/backups/projeto-a-20240101-1200.sql
 
 # Sobe o backend novamente
 docker compose -f docker-compose.yml -f compose/projeto-a.yml up -d projeto-a-backend
 ```
 
-> Para um ambiente acadêmico, fazer backup manual antes de cada semana de entregas é suficiente. Se quiser automatizar, adicione o comando de backup ao cron: `crontab -e` → `0 2 * * * docker exec projeto-a-db pg_dump ...`
+> Para um ambiente acadêmico, fazer backup antes de cada semana de entregas é suficiente. Para automatizar via cron:
+> ```bash
+> crontab -e
+> # Adicionar: backup diário às 2h para todos os projetos
+> 0 2 * * * cd ~/es-builder && for p in portal projeto-a projeto-b projeto-c projeto-d projeto-e; do docker compose -f docker-compose.yml -f compose/${p}.yml exec -T ${p}-db sh -c 'pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"' > ~/backups/${p}-$(date +\%Y\%m\%d).sql; done
+> ```
 
 ---
 

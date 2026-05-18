@@ -18,9 +18,20 @@ const ROOT_DIR = path.resolve(__dirname, '..');
 const STATE_DIR = path.join(ROOT_DIR, 'state');
 const LOGS_DIR = path.join(ROOT_DIR, 'logs');
 
-// Executa um comando shell e retorna o stdout como string
+// Executa um comando shell e retorna o stdout como string.
+// maxBuffer elevado para suportar output extenso de `docker build` sem estourar o padrão de 1MB.
+// Em falha, inclui stderr na mensagem para aparecer nos logs do projeto.
 function run(cmd, opts = {}) {
-  return execSync(cmd, { encoding: 'utf8', ...opts }).trim();
+  try {
+    return execSync(cmd, {
+      encoding: 'utf8',
+      maxBuffer: 200 * 1024 * 1024,
+      ...opts,
+    }).trim();
+  } catch (err) {
+    if (err.stderr) err.message += `\nSTDERR:\n${err.stderr}`;
+    throw err;
+  }
 }
 
 // Lê o estado persistido de um projeto; retorna objeto vazio se não existir

@@ -64,7 +64,9 @@ $SUDO apt-get install -y -qq \
   ca-certificates \
   curl \
   git \
-  openssh-client
+  openssh-client \
+  openssl \
+  python3
 
 info "git: $(git --version)"
 info "ssh-keygen: $(ssh-keygen -V 2>&1 | head -1 || echo 'disponível')"
