@@ -1,0 +1,8 @@
+{
+  "portal":    "git@github.com-es-builder:sua-org/portal.git",
+  "projeto-a": "git@github.com-es-builder:sua-org/projeto-a.git",
+  "projeto-b": "git@github.com-es-builder:sua-org/projeto-b.git",
+  "projeto-c": "git@github.com-es-builder:sua-org/projeto-c.git",
+  "projeto-d": "git@github.com-es-builder:sua-org/projeto-d.git",
+  "projeto-e": "git@github.com-es-builder:sua-org/projeto-e.git"
+}

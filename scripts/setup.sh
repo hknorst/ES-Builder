@@ -4,68 +4,107 @@ set -euo pipefail
 # =============================================================================
 # setup.sh — configuração inicial do es-builder
 #
-# Execute uma vez no servidor antes de iniciar o watcher.
+# Execute uma vez no servidor, após bootstrap.sh e após preencher
+# config/repos.json com as URLs reais dos repositórios dos grupos.
 # =============================================================================
 
-# URLs dos repositórios Git (branch deploy)
-# Ajuste para os URLs reais de cada grupo antes de executar
-REPO_PORTAL="git@github.com:seu-grupo/portal.git"
-REPO_PROJETO_A="git@github.com:seu-grupo/projeto-a.git"
-REPO_PROJETO_B="git@github.com:seu-grupo/projeto-b.git"
-REPO_PROJETO_C="git@github.com:seu-grupo/projeto-c.git"
-REPO_PROJETO_D="git@github.com:seu-grupo/projeto-d.git"
-REPO_PROJETO_E="git@github.com:seu-grupo/projeto-e.git"
-
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+REPOS_FILE="$ROOT_DIR/config/repos.json"
+
+# =============================================================================
+# Utilitários
+# =============================================================================
+
+ok()   { echo "  [ok] $*"; }
+fail() { echo ""; echo "  [ERRO] $*" >&2; exit 1; }
+
+# Lê o valor de uma chave do repos.json via Python3 (sempre disponível no Ubuntu)
+get_repo() {
+  python3 -c "import json; print(json.load(open('$REPOS_FILE'))['$1'])"
+}
+
+# =============================================================================
+# Verificações pré-voo
+# =============================================================================
+
+echo ""
+echo "=== Verificações pré-voo ==="
+
+docker info &>/dev/null \
+  || fail "Docker não está rodando. Execute: sudo systemctl start docker"
+ok "Docker Engine disponível"
+
+docker compose version &>/dev/null \
+  || fail "Docker Compose v2 não encontrado. Execute: sudo apt-get install docker-compose-plugin"
+ok "Docker Compose v2 disponível"
+
+[ -f "$REPOS_FILE" ] \
+  || fail "config/repos.json não encontrado.
+         Copie o template: cp config/repos.json.example config/repos.json
+         Depois edite com as URLs reais dos grupos."
+ok "config/repos.json encontrado"
+
+grep -q "sua-org" "$REPOS_FILE" \
+  && fail "config/repos.json ainda contém URLs de placeholder (sua-org).
+         Edite o arquivo e preencha as URLs reais antes de continuar." || true
+ok "config/repos.json preenchido"
+
+echo ""
 
 # =============================================================================
 # Criar diretórios necessários (não versionados)
 # =============================================================================
 
-echo "Criando diretórios..."
-mkdir -p "$ROOT_DIR/state"
-mkdir -p "$ROOT_DIR/logs"
-mkdir -p "$ROOT_DIR/envs"
-mkdir -p "$ROOT_DIR/projects"
+echo "=== Criando diretórios ==="
+mkdir -p "$ROOT_DIR"/{state,logs,envs,projects}
+ok "state/, logs/, envs/, projects/ prontos"
 
 # =============================================================================
 # Clonar repositórios na branch deploy
 # =============================================================================
 
+echo ""
+echo "=== Clonando repositórios ==="
+
 clone_or_update() {
   local nome="$1"
-  local url="$2"
+  local url
+  url=$(get_repo "$nome")
   local destino="$ROOT_DIR/projects/$nome"
 
   if [ -d "$destino/.git" ]; then
-    echo "[$nome] Repositório já existe. Pulando clone."
+    echo "  [$nome] Repositório já existe — pulando."
   else
-    echo "[$nome] Clonando branch deploy..."
+    echo "  [$nome] Clonando $url ..."
     git clone --branch deploy --single-branch "$url" "$destino"
+    echo "  [$nome] Clonado."
   fi
 }
 
-clone_or_update "portal"    "$REPO_PORTAL"
-clone_or_update "projeto-a" "$REPO_PROJETO_A"
-clone_or_update "projeto-b" "$REPO_PROJETO_B"
-clone_or_update "projeto-c" "$REPO_PROJETO_C"
-clone_or_update "projeto-d" "$REPO_PROJETO_D"
-clone_or_update "projeto-e" "$REPO_PROJETO_E"
+clone_or_update "portal"
+clone_or_update "projeto-a"
+clone_or_update "projeto-b"
+clone_or_update "projeto-c"
+clone_or_update "projeto-d"
+clone_or_update "projeto-e"
 
 # =============================================================================
 # Criar arquivos .env por projeto (se não existirem)
 # =============================================================================
+
+echo ""
+echo "=== Criando arquivos .env ==="
 
 create_env() {
   local nome="$1"
   local env_file="$ROOT_DIR/envs/${nome}.env"
 
   if [ -f "$env_file" ]; then
-    echo "[$nome] .env já existe. Pulando criação."
+    echo "  [$nome] envs/${nome}.env já existe — pulando."
     return
   fi
 
-  echo "[$nome] Criando envs/${nome}.env..."
+  echo "  [$nome] Criando envs/${nome}.env..."
   cat > "$env_file" <<EOF
 # Variáveis de ambiente para ${nome}
 # Preencha antes de iniciar o watcher
@@ -104,10 +143,10 @@ create_env "projeto-e"
 # =============================================================================
 
 echo ""
-echo "Subindo Nginx para criar a rede orq-net..."
+echo "=== Subindo Nginx ==="
 cd "$ROOT_DIR"
 docker compose up -d nginx
-echo "Nginx no ar. Rede orq-net criada."
+ok "Nginx no ar. Rede orq-net criada."
 
 # =============================================================================
 # Instruções finais
@@ -119,38 +158,24 @@ echo " SETUP CONCLUÍDO — PRÓXIMOS PASSOS"
 echo "============================================================"
 echo ""
 echo "1. PREENCHER OS ARQUIVOS .env:"
-echo "   Edite os arquivos em envs/*.env e defina:"
-echo "   - JWT_SECRET (igual em todos os projetos)"
-echo "   - DATABASE_URL"
-echo "   - POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB"
+echo "   Edite cada arquivo em envs/*.env e defina:"
+echo "   - JWT_SECRET (mesmo valor em TODOS os projetos)"
+echo "   - DATABASE_URL, POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB"
 echo ""
-echo "2. CONFIGURAR DEPLOY KEYS (acesso somente leitura):"
-echo "   Gerar par de chaves SSH ed25519:"
-echo "   ssh-keygen -t ed25519 -C 'es-builder-deploy' -f ~/.ssh/es-builder_ed25519 -N ''"
+echo "   Exemplo:"
+echo "   nano $ROOT_DIR/envs/portal.env"
+echo "   nano $ROOT_DIR/envs/projeto-a.env"
 echo ""
-echo "   Adicionar ao ~/.ssh/config:"
-echo "   Host github.com"
-echo "     IdentityFile ~/.ssh/es-builder_ed25519"
-echo "     IdentitiesOnly yes"
+echo "2. INSTALAR O WATCHER COMO SERVIÇO SYSTEMD:"
+echo "   cd $ROOT_DIR"
+echo "   sudo sed -e \"s|__USER__|$USER|g\" -e \"s|__WORKDIR__|$(pwd)|g\" \\"
+echo "     systemd/es-builder-watcher.service \\"
+echo "     | sudo tee /etc/systemd/system/es-builder-watcher.service > /dev/null"
+echo "   sudo systemctl daemon-reload"
+echo "   sudo systemctl enable --now es-builder-watcher"
+echo "   sudo systemctl status es-builder-watcher"
 echo ""
-echo "   Copiar a chave pública (~/.ssh/es-builder_ed25519.pub)"
-echo "   e cadastrar como Deploy Key (read-only) em cada repositório:"
-echo "   GitHub → Settings → Deploy Keys → Add deploy key"
-echo ""
-echo "3. PROTEGER A BRANCH deploy EM CADA REPOSITÓRIO:"
-echo "   GitHub → Settings → Branches → Add branch protection rule"
-echo "   - Branch name pattern: deploy"
-echo "   - Require pull request reviews before merging"
-echo "   - Recomendado: exigir aprovação do professor/monitor"
-echo ""
-echo "4. INICIAR O WATCHER:"
-echo "   node scripts/watcher.js"
-echo ""
-echo "   Para rodar em background com log persistido:"
-echo "   nohup node scripts/watcher.js >> logs/watcher.log 2>&1 &"
-echo ""
-echo "5. DEPLOY MANUAL DE UM PROJETO:"
-echo "   node scripts/deployer.js <projeto>"
-echo "   Exemplo: node scripts/deployer.js projeto-a"
+echo "3. DEPLOY MANUAL DE UM PROJETO (sem esperar o watcher):"
+echo "   node $ROOT_DIR/scripts/deployer.js projeto-a"
 echo ""
 echo "============================================================"

@@ -76,31 +76,38 @@ Repita para todos os 6 repositórios: portal, projeto-a, projeto-b, projeto-c, p
 **Testar a conexão após cadastrar:**
 
 ```bash
-ssh -T git@github.com
+ssh -T git@github.com-es-builder
 # Resposta esperada: Hi <usuario>! You've successfully authenticated...
 ```
+
+> O alias `github.com-es-builder` é configurado pelo bootstrap para não conflitar com chaves SSH pessoais do administrador.
 
 ---
 
 ## Passo 3 — Configurar as URLs dos repositórios
 
-Edite o arquivo `scripts/setup.sh` e preencha as URLs SSH dos repositórios de cada grupo:
+Copie o template e preencha com as URLs reais de cada grupo:
 
 ```bash
 cd ~/es-builder
-nano scripts/setup.sh
+cp config/repos.json.example config/repos.json
+nano config/repos.json
 ```
 
-Localize o bloco no topo do arquivo e substitua:
+Substitua `sua-org` pela organização/usuário correto do GitHub. Use o alias `github.com-es-builder` nas URLs:
 
-```bash
-REPO_PORTAL="git@github.com:nome-da-org/portal.git"
-REPO_PROJETO_A="git@github.com:nome-da-org/projeto-a.git"
-REPO_PROJETO_B="git@github.com:nome-da-org/projeto-b.git"
-REPO_PROJETO_C="git@github.com:nome-da-org/projeto-c.git"
-REPO_PROJETO_D="git@github.com:nome-da-org/projeto-d.git"
-REPO_PROJETO_E="git@github.com:nome-da-org/projeto-e.git"
+```json
+{
+  "portal":    "git@github.com-es-builder:nome-da-org/portal.git",
+  "projeto-a": "git@github.com-es-builder:nome-da-org/projeto-a.git",
+  "projeto-b": "git@github.com-es-builder:nome-da-org/projeto-b.git",
+  "projeto-c": "git@github.com-es-builder:nome-da-org/projeto-c.git",
+  "projeto-d": "git@github.com-es-builder:nome-da-org/projeto-d.git",
+  "projeto-e": "git@github.com-es-builder:nome-da-org/projeto-e.git"
+}
 ```
+
+> `config/repos.json` está no `.gitignore` — atualizações do es-builder nunca sobrescrevem essa configuração local.
 
 ---
 
@@ -154,35 +161,46 @@ openssl rand -hex 32
 
 ---
 
-## Passo 6 — Iniciar o watcher
+## Passo 6 — Instalar o watcher como serviço systemd
 
-O watcher monitora todos os repositórios a cada 60 segundos e dispara o deploy automaticamente quando detecta novos commits na branch `deploy`.
+O watcher monitora todos os repositórios a cada 60 segundos e reinicia automaticamente em caso de falha ou reboot do servidor.
 
-**Em foreground** (para ver os logs na tela, útil no início):
-
-```bash
-node scripts/watcher.js
-```
-
-**Em background** (para produção):
+**Instalar a unit:**
 
 ```bash
-nohup node scripts/watcher.js >> logs/watcher.log 2>&1 &
-echo $! > watcher.pid
-echo "Watcher iniciado com PID $(cat watcher.pid)"
+cd ~/es-builder
+sudo sed \
+  -e "s|__USER__|$USER|g" \
+  -e "s|__WORKDIR__|$(pwd)|g" \
+  systemd/es-builder-watcher.service \
+  | sudo tee /etc/systemd/system/es-builder-watcher.service > /dev/null
+
+sudo systemctl daemon-reload
+sudo systemctl enable --now es-builder-watcher
 ```
 
-**Verificar se está rodando:**
+**Verificar status:**
 
 ```bash
-ps aux | grep watcher.js
+sudo systemctl status es-builder-watcher
 ```
 
-**Parar o watcher:**
+**Ver logs em tempo real:**
 
 ```bash
-kill $(cat watcher.pid)
+journalctl -u es-builder-watcher -f
+# ou direto pelo arquivo de log:
+tail -f ~/es-builder/logs/watcher.log
 ```
+
+**Parar / reiniciar:**
+
+```bash
+sudo systemctl stop es-builder-watcher
+sudo systemctl restart es-builder-watcher
+```
+
+> Para testar sem systemd (útil na primeira execução): `node scripts/watcher.js`
 
 ---
 
@@ -271,7 +289,7 @@ docker compose -f docker-compose.yml -f compose/projeto-a.yml up -d \
 
 ## Alterar a porta do backend de um projeto
 
-Se um grupo precisar mudar a porta padrão (3000):
+Se um grupo precisar mudar a porta padrão (3000), **três arquivos precisam ser atualizados em conjunto** — eles devem sempre estar em sincronia:
 
 **1. Atualizar `config/projeto-x.json`:**
 
@@ -297,6 +315,44 @@ proxy_pass http://projeto-x-backend:4000/;
 docker compose restart nginx
 ```
 
+> Se a porta em `config/projeto-x.json` e em `routes.conf` ficarem diferentes, o Nginx vai rotear para a porta errada e a API vai retornar 502. Sempre atualize os dois juntos.
+
+---
+
+## Backup e restore do banco de dados
+
+O rollback automático não restaura o banco — só as imagens de código. Para proteger os dados dos grupos em caso de falha de migration ou acidente:
+
+**Backup de um projeto:**
+
+```bash
+# Exporta o banco para um arquivo .sql no servidor
+docker exec projeto-a-db pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB" \
+  > ~/backups/projeto-a-$(date +%Y%m%d-%H%M).sql
+```
+
+**Criar diretório de backups antes de usar:**
+
+```bash
+mkdir -p ~/backups
+```
+
+**Restore de um backup:**
+
+```bash
+# Para o backend antes de restaurar (evita conexões abertas)
+docker compose -f docker-compose.yml -f compose/projeto-a.yml stop projeto-a-backend
+
+# Restaura o banco
+docker exec -i projeto-a-db psql -U "$POSTGRES_USER" "$POSTGRES_DB" \
+  < ~/backups/projeto-a-20240101-1200.sql
+
+# Sobe o backend novamente
+docker compose -f docker-compose.yml -f compose/projeto-a.yml up -d projeto-a-backend
+```
+
+> Para um ambiente acadêmico, fazer backup manual antes de cada semana de entregas é suficiente. Se quiser automatizar, adicione o comando de backup ao cron: `crontab -e` → `0 2 * * * docker exec projeto-a-db pg_dump ...`
+
 ---
 
 ## Atualizar o es-builder
@@ -311,9 +367,7 @@ git pull --ff-only
 docker compose restart nginx
 
 # Reiniciar o watcher
-kill $(cat watcher.pid)
-nohup node scripts/watcher.js >> logs/watcher.log 2>&1 &
-echo $! > watcher.pid
+sudo systemctl restart es-builder-watcher
 ```
 
 ---
@@ -327,7 +381,7 @@ echo $! > watcher.pid
 docker logs $(docker ps -qf name=nginx)
 
 # Testar configuração manualmente
-docker run --rm -v $(pwd)/nginx/conf.d:/etc/nginx/conf.d:ro nginx:alpine nginx -t
+docker run --rm -v $(pwd)/nginx/conf.d:/etc/nginx/conf.d:ro nginx:1.27-alpine nginx -t
 ```
 
 ### Um projeto não recebe deploy
@@ -363,13 +417,17 @@ docker network ls | grep orq-net
 
 ### Watcher parou de rodar
 
-```bash
-# Verificar
-ps aux | grep watcher.js
+Com systemd, o watcher reinicia automaticamente. Para verificar e agir manualmente:
 
-# Reiniciar
-nohup node scripts/watcher.js >> logs/watcher.log 2>&1 &
-echo $! > watcher.pid
+```bash
+# Ver status
+sudo systemctl status es-builder-watcher
+
+# Ver logs recentes
+journalctl -u es-builder-watcher -n 50
+
+# Forçar reinício
+sudo systemctl restart es-builder-watcher
 ```
 
 ### Permissão negada ao rodar docker sem sudo

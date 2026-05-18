@@ -175,12 +175,16 @@ else
 fi
 
 # Adicionar bloco ao ~/.ssh/config se ainda não estiver lá
+# Alias específico (github.com-es-builder) para não sobrescrever
+# chaves SSH pessoais que o admin possa ter para o github.com global.
 if ! grep -q "es-builder_ed25519" "$SSH_CONFIG" 2>/dev/null; then
   info "Configurando ~/.ssh/config..."
   cat >> "$SSH_CONFIG" <<EOF
 
 # Adicionado pelo bootstrap.sh do es-builder
-Host github.com
+# Use git@github.com-es-builder:org/repo.git nas URLs dos repositórios
+Host github.com-es-builder
+  HostName github.com
   IdentityFile ${SSH_KEY_PATH}
   IdentitiesOnly yes
 EOF
@@ -242,14 +246,17 @@ echo ""
 echo -e "${BOLD}Próximos passos:${RESET}"
 echo ""
 echo "  1. Cadastrar a chave pública acima em todos os repositórios dos grupos"
+echo "     (GitHub → Settings → Deploy Keys → Add deploy key → Allow write access: NÃO)"
 echo ""
 echo "  2. Entrar no diretório:"
 echo "     cd ${CLONE_DIR}"
 echo ""
-echo "  3. Editar as URLs dos repositórios dos grupos:"
-echo "     nano scripts/setup.sh"
+echo "  3. Preencher as URLs dos repositórios dos grupos:"
+echo "     cp config/repos.json.example config/repos.json"
+echo "     nano config/repos.json"
+echo "     (use o alias git@github.com-es-builder:org/repo.git)"
 echo ""
-echo "  4. Executar o setup (clona repos, cria .env, sobe Nginx):"
+echo "  4. Executar o setup (verifica pré-requisitos, clona repos, cria .env, sobe Nginx):"
 echo "     bash scripts/setup.sh"
 echo ""
 echo "  5. Preencher as variáveis de cada projeto:"
@@ -257,8 +264,12 @@ echo "     nano envs/portal.env"
 echo "     nano envs/projeto-a.env"
 echo "     # ... repetir para todos os projetos"
 echo ""
-echo "  6. Iniciar o watcher:"
-echo "     node scripts/watcher.js"
+echo "  6. Instalar o watcher como serviço systemd:"
+echo "     sudo sed -e \"s|__USER__|\$USER|g\" -e \"s|__WORKDIR__|\$(pwd)|g\" \\"
+echo "       systemd/es-builder-watcher.service \\"
+echo "       | sudo tee /etc/systemd/system/es-builder-watcher.service > /dev/null"
+echo "     sudo systemctl daemon-reload"
+echo "     sudo systemctl enable --now es-builder-watcher"
 echo ""
 
 if [[ $EUID -ne 0 ]] && ! groups "$USER" | grep -q docker 2>/dev/null; then

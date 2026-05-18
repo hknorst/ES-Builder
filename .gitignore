@@ -17,5 +17,8 @@ projects/
 # Chave pública de deploy gerada pelo bootstrap.sh (específica de cada servidor)
 deploy-key.pub
 
+# Configuração local de repositórios (específica de cada instalação)
+config/repos.json
+
 # Dependências Node (caso alguém adicione package.json no futuro)
 node_modules/

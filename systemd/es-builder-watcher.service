@@ -1,0 +1,18 @@
+[Unit]
+Description=ES-Builder Deploy Watcher
+Documentation=https://github.com/hknorst/es-builder
+After=docker.service network-online.target
+Requires=docker.service
+
+[Service]
+Type=simple
+User=__USER__
+WorkingDirectory=__WORKDIR__
+ExecStart=/usr/bin/env node scripts/watcher.js
+Restart=always
+RestartSec=10
+StandardOutput=append:__WORKDIR__/logs/watcher.log
+StandardError=append:__WORKDIR__/logs/watcher.log
+
+[Install]
+WantedBy=multi-user.target
