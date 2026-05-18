@@ -229,18 +229,21 @@ export default api
 
 ## 5. Variáveis de ambiente
 
-O servidor tem um arquivo `envs/projeto-x.env` com as variáveis do seu projeto. O professor/monitor vai preencher junto com vocês na primeira configuração.
+O servidor tem um arquivo `envs/projeto-x.env` com as variáveis do seu projeto.
+
+- **`JWT_SECRET`** — gerado automaticamente durante o setup do servidor. Já está preenchido e é idêntico em todos os projetos. Vocês não precisam fazer nada.
+- **`DATABASE_URL` e credenciais do banco** — definidos pelo professor na primeira configuração, com os valores específicos do seu grupo.
 
 > Consulte o [env-grupos.md](env-grupos.md) para o template completo de `.env` para desenvolvimento local e a explicação de cada variável.
 
 **Variáveis disponíveis no backend (via `process.env`):**
 
 ```bash
-# String de conexão com o banco de dados
+# String de conexão com o banco de dados (host = nome do container, nunca localhost)
 DATABASE_URL=postgresql://usuario:senha@projeto-a-db:5432/meu_banco
 
-# Chave secreta para validar tokens JWT (igual em todos os projetos)
-JWT_SECRET=chave-super-secreta-definida-pelo-professor
+# Chave secreta JWT — gerada no setup, igual em todos os projetos
+JWT_SECRET=<injetado automaticamente pelo servidor>
 
 # Prefixo de rota do projeto (ex: /projeto-a)
 BASE_PATH=/projeto-a
@@ -294,7 +297,7 @@ function autenticar(req, res, next) {
 }
 ```
 
-> A `JWT_SECRET` é a mesma para todos os projetos e é definida pelo professor. Nunca hardcode ela no código — leia sempre de `process.env.JWT_SECRET`.
+> A `JWT_SECRET` é gerada automaticamente durante o setup do servidor e é idêntica em todos os projetos. Nunca hardcode ela no código — leia sempre de `process.env.JWT_SECRET`.
 
 ---
 
@@ -401,7 +404,7 @@ Se precisar remover ou renomear, faça em duas fases: primeiro deploy deixa o ca
 | API retorna erro de rede | Frontend apontando para `localhost` | Usar `` `${import.meta.env.BASE_URL}api` `` como base URL |
 | `Cannot connect to database` | `DATABASE_URL` com `localhost` | Usar `projeto-x-db` como hostname |
 | React Router mostra 404 ao navegar | Nginx do frontend não configurado para SPA | Adicionar `try_files $uri /index.html` no `nginx.conf` |
-| Token JWT inválido | `JWT_SECRET` diferente entre projetos | Confirmar com o professor que a chave é a mesma |
+| Token JWT inválido | `JWT_SECRET` não injetado no servidor | Pedir ao professor para verificar `envs/projeto-x.env` no servidor |
 
 ---
 
@@ -421,7 +424,7 @@ Se precisar remover ou renomear, faça em duas fases: primeiro deploy deixa o ca
 
 4. Backend
    DATABASE_URL com host = projeto-x-db  ← nunca localhost
-   JWT_SECRET via process.env.JWT_SECRET
+   JWT_SECRET via process.env.JWT_SECRET  ← injetado pelo servidor, não configurar
 
 5. Deploy
    git push origin deploy
