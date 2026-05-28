@@ -1,11 +1,14 @@
 {
-  "backend": {
-    "context": ".",
-    "dockerfile": "backend/Dockerfile",
-    "port": 3000
-  },
+  "name": "portal",
   "frontend": {
-    "context": ".",
-    "dockerfile": "frontend/Dockerfile"
+    "context": "frontend",
+    "dockerfile": "Dockerfile",
+    "base_path": "/portal/"
+  },
+  "backend": {
+    "context": "backend",
+    "dockerfile": "Dockerfile",
+    "port": 3001,
+    "base_path": "/portal/api/"
   }
 }
