@@ -2,7 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
+const { execSync, spawnSync } = require('child_process');
 
 // Projetos gerenciados pelo es-builder
 const PROJETOS_PERMITIDOS = [
@@ -18,15 +18,31 @@ const ROOT_DIR = path.resolve(__dirname, '..');
 const STATE_DIR = path.join(ROOT_DIR, 'state');
 const LOGS_DIR = path.join(ROOT_DIR, 'logs');
 
-// Executa um comando shell e retorna o stdout como string.
-// maxBuffer elevado para suportar output extenso de `docker build` sem estourar o padrão de 1MB.
-// Em falha, inclui stderr na mensagem para aparecer nos logs do projeto.
+// Executa um comando shell.
+// Com stream: true, imprime output em tempo real (stdio: 'inherit') — sem retorno de string.
+// Sem stream, captura stdout e retorna como string; inclui stderr na mensagem de erro.
 function run(cmd, opts = {}) {
+  const { stream = false, timeout, cwd } = opts;
+
+  if (stream) {
+    const result = spawnSync(cmd, {
+      shell: true,
+      stdio: 'inherit',
+      ...(cwd && { cwd }),
+      ...(timeout && { timeout }),
+    });
+    if (result.status !== 0) {
+      throw new Error(`Command failed (exit ${result.status ?? 'unknown'}): ${cmd}`);
+    }
+    return '';
+  }
+
   try {
     return execSync(cmd, {
       encoding: 'utf8',
       maxBuffer: 200 * 1024 * 1024,
-      ...opts,
+      ...(cwd && { cwd }),
+      ...(timeout && { timeout }),
     }).trim();
   } catch (err) {
     if (err.stderr) err.message += `\nSTDERR:\n${err.stderr}`;

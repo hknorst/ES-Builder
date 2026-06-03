@@ -113,7 +113,7 @@ async function deployProject(project) {
     log(project, 'Iniciando build do backend...');
     run(
       `docker build -f "${backendDockerfile}" -t ${backendImage}:${sha} "${backendContext}"`,
-      { timeout: BUILD_TIMEOUT_MS }
+      { stream: true, timeout: BUILD_TIMEOUT_MS }
     );
     log(project, `Build backend concluído: ${backendImage}:${sha}`);
 
@@ -124,7 +124,7 @@ async function deployProject(project) {
     run(
       `docker build --build-arg VITE_BASE_PATH=${viteBasePath} ` +
       `-f "${frontendDockerfile}" -t ${frontendImage}:${sha} "${frontendContext}"`,
-      { timeout: BUILD_TIMEOUT_MS }
+      { stream: true, timeout: BUILD_TIMEOUT_MS }
     );
     log(project, `Build frontend concluído: ${frontendImage}:${sha}`);
 
