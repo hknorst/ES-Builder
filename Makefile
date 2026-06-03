@@ -7,6 +7,11 @@ DIR   := $(shell pwd)
 .PHONY: tunnel-install tunnel-start tunnel-stop tunnel-status tunnel-url tunnel-uninstall
 
 tunnel-install: ## Instala e habilita o tunnel como serviço systemd (sobrevive a reboot)
+	@if [ ! -f /usr/local/bin/cloudflared ]; then \
+		echo "Baixando cloudflared..."; \
+		sudo curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 \
+			-o /usr/local/bin/cloudflared && sudo chmod +x /usr/local/bin/cloudflared; \
+	fi
 	@sudo sed -e "s|__USER__|$(USER)|g" -e "s|__WORKDIR__|$(DIR)|g" \
 		systemd/es-builder-tunnel.service \
 		| sudo tee /etc/systemd/system/es-builder-tunnel.service > /dev/null

@@ -7,11 +7,6 @@ Wants=network-online.target
 Type=simple
 User=__USER__
 WorkingDirectory=__WORKDIR__
-ExecStartPre=/bin/bash -c '\
-  if [ ! -f /usr/local/bin/cloudflared ]; then \
-    curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 \
-      -o /usr/local/bin/cloudflared && chmod +x /usr/local/bin/cloudflared; \
-  fi'
 ExecStart=/usr/local/bin/cloudflared tunnel --url http://localhost:80 --no-autoupdate
 Restart=on-failure
 RestartSec=15
