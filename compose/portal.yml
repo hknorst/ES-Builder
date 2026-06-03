@@ -10,7 +10,7 @@ services:
     image: postgres:16-alpine
     restart: unless-stopped
     env_file:
-      - ../envs/portal.env
+      - envs/portal.env
     volumes:
       - portal-db-data:/var/lib/postgresql/data
     networks:
@@ -26,7 +26,7 @@ services:
     image: portal-backend:current
     restart: unless-stopped
     env_file:
-      - ../envs/portal.env
+      - envs/portal.env
     environment:
       BASE_PATH: /portal
     depends_on:
@@ -39,7 +39,7 @@ services:
     image: portal-frontend:current
     restart: unless-stopped
     env_file:
-      - ../envs/portal.env
+      - envs/portal.env
     networks:
       - orq-net
 

@@ -10,7 +10,7 @@ services:
     image: postgres:16-alpine
     restart: unless-stopped
     env_file:
-      - ../envs/projeto-b.env
+      - envs/projeto-b.env
     volumes:
       - projeto-b-db-data:/var/lib/postgresql/data
     networks:
@@ -26,7 +26,7 @@ services:
     image: projeto-b-backend:current
     restart: unless-stopped
     env_file:
-      - ../envs/projeto-b.env
+      - envs/projeto-b.env
     environment:
       BASE_PATH: /projeto-b
     depends_on:
@@ -39,7 +39,7 @@ services:
     image: projeto-b-frontend:current
     restart: unless-stopped
     env_file:
-      - ../envs/projeto-b.env
+      - envs/projeto-b.env
     networks:
       - orq-net
 
