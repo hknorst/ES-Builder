@@ -38,16 +38,15 @@ docker compose version &>/dev/null \
   || fail "Docker Compose v2 não encontrado. Execute: sudo apt-get install docker-compose-plugin"
 ok "Docker Compose v2 disponível"
 
-[ -f "$REPOS_FILE" ] \
-  || fail "config/repos.json não encontrado.
-         Copie o template: cp config/repos.json.example config/repos.json
-         Depois edite com as URLs reais dos grupos."
-ok "config/repos.json encontrado"
-
-grep -q "sua-org" "$REPOS_FILE" \
-  && fail "config/repos.json ainda contém URLs de placeholder (sua-org).
-         Edite o arquivo e preencha as URLs reais antes de continuar." || true
-ok "config/repos.json preenchido"
+if [ ! -f "$REPOS_FILE" ]; then
+  echo "  [aviso] config/repos.json não encontrado — etapa de clone será ignorada."
+  echo "          Para clonar os repos: cp config/repos.json.example config/repos.json"
+  echo "          Depois edite com as URLs reais dos grupos e execute setup.sh novamente."
+  REPOS_CONFIGURADO=false
+else
+  ok "config/repos.json encontrado"
+  REPOS_CONFIGURADO=true
+fi
 
 echo ""
 
@@ -72,6 +71,11 @@ clone_or_update() {
   url=$(get_repo "$nome")
   local destino="$ROOT_DIR/projects/$nome"
 
+  if [[ "$url" == *"sua-org"* ]]; then
+    echo "  [$nome] [aviso] URL ainda é placeholder — pulando."
+    return
+  fi
+
   if [ -d "$destino/.git" ]; then
     echo "  [$nome] Repositório já existe — pulando."
   else
@@ -81,12 +85,16 @@ clone_or_update() {
   fi
 }
 
-clone_or_update "portal"
-clone_or_update "projeto-a"
-clone_or_update "projeto-b"
-clone_or_update "projeto-c"
-clone_or_update "projeto-d"
-clone_or_update "projeto-e"
+if [ "$REPOS_CONFIGURADO" = true ]; then
+  clone_or_update "portal"
+  clone_or_update "projeto-a"
+  clone_or_update "projeto-b"
+  clone_or_update "projeto-c"
+  clone_or_update "projeto-d"
+  clone_or_update "projeto-e"
+else
+  echo "  [aviso] Etapa de clone ignorada — repos.json não encontrado."
+fi
 
 # =============================================================================
 # Criar arquivos .env por projeto (se não existirem)
