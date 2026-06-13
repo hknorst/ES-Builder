@@ -76,7 +76,12 @@ async function deployProject(project) {
 
   // 2. Buscar atualizações da branch deploy
   log(project, 'Buscando branch deploy...');
-  run('git fetch origin deploy', { cwd: projectDir });
+  try {
+    run('git fetch origin deploy', { cwd: projectDir });
+  } catch {
+    log(project, 'Branch deploy não encontrada no remoto. Aguardando criação.');
+    return;
+  }
 
   // 3. Obter SHA atual do origin/deploy
   const sha = run('git rev-parse origin/deploy', { cwd: projectDir });
