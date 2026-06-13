@@ -80,8 +80,13 @@ clone_or_update() {
     echo "  [$nome] Repositório já existe — pulando."
   else
     echo "  [$nome] Clonando $url ..."
-    git clone --branch deploy --single-branch "$url" "$destino"
-    echo "  [$nome] Clonado."
+    if git clone --branch deploy --single-branch "$url" "$destino" 2>/dev/null; then
+      echo "  [$nome] Clonado (branch deploy)."
+    else
+      echo "  [$nome] Branch deploy não encontrada. Clonando branch padrão..."
+      git clone "$url" "$destino"
+      echo "  [$nome] Clonado (branch padrão). Deploy aguardará criação da branch deploy."
+    fi
   fi
 }
 
