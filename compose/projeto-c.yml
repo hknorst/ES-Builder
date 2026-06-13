@@ -29,6 +29,8 @@ services:
       - envs/projeto-c.env
     environment:
       BASE_PATH: /projeto-c
+    volumes:
+      - projeto-c-storage:/storage
     depends_on:
       projeto-c-db:
         condition: service_healthy
@@ -45,6 +47,7 @@ services:
 
 volumes:
   projeto-c-db-data:
+  projeto-c-storage:
 
 networks:
   orq-net:
