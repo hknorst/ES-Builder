@@ -1,11 +1,11 @@
 {
   "backend": {
-    "context": ".",
+    "context": "backend",
     "dockerfile": "backend/Dockerfile",
     "port": 3000
   },
   "frontend": {
-    "context": ".",
+    "context": "frontend",
     "dockerfile": "frontend/Dockerfile"
   }
 }
