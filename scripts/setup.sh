@@ -82,10 +82,10 @@ clone_or_update() {
     echo "  [$nome] Clonando $url ..."
     if git clone --branch deploy --single-branch "$url" "$destino" 2>/dev/null; then
       echo "  [$nome] Clonado (branch deploy)."
-    else
-      echo "  [$nome] Branch deploy não encontrada. Clonando branch padrão..."
-      git clone "$url" "$destino"
+    elif git clone "$url" "$destino" 2>/dev/null; then
       echo "  [$nome] Clonado (branch padrão). Deploy aguardará criação da branch deploy."
+    else
+      echo "  [$nome] [erro] Falha ao clonar — verifique a chave SSH e a URL."
     fi
   fi
 }
