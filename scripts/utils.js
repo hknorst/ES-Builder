@@ -7,6 +7,7 @@ const { execSync, spawnSync } = require('child_process');
 // Projetos gerenciados pelo es-builder
 const PROJETOS_PERMITIDOS = [
   'portal',
+  'portal-fake',
   'projeto-a',
   'projeto-b',
   'projeto-c',

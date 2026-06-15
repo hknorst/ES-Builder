@@ -1,0 +1,48 @@
+# compose/portal-fake.yml — portal de fallback, acessível na porta 8080
+#
+# Gerenciado pelo deployer.js. Não subir manualmente em produção.
+
+services:
+  portal-fake-db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    env_file:
+      - envs/portal-fake.env
+    volumes:
+      - portal-fake-db-data:/var/lib/postgresql/data
+    networks:
+      - orq-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  portal-fake-backend:
+    image: portal-fake-backend:current
+    restart: unless-stopped
+    env_file:
+      - envs/portal-fake.env
+    environment:
+      BASE_PATH: /portal
+    depends_on:
+      portal-fake-db:
+        condition: service_healthy
+    networks:
+      - orq-net
+
+  portal-fake-frontend:
+    image: portal-fake-frontend:current
+    restart: unless-stopped
+    env_file:
+      - envs/portal-fake.env
+    networks:
+      - orq-net
+
+volumes:
+  portal-fake-db-data:
+
+networks:
+  orq-net:
+    external: true
