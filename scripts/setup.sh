@@ -92,6 +92,7 @@ clone_or_update() {
 
 if [ "$REPOS_CONFIGURADO" = true ]; then
   clone_or_update "portal"
+  clone_or_update "portal-fake"
   clone_or_update "projeto-a"
   clone_or_update "projeto-b"
   clone_or_update "projeto-c"
@@ -122,6 +123,7 @@ fi
 
 create_env() {
   local nome="$1"
+  local base_path="${2:-/${nome}}"
   local env_file="$ROOT_DIR/envs/${nome}.env"
 
   # Considera configurado se DATABASE_URL já estiver preenchida.
@@ -144,10 +146,10 @@ create_env() {
 # Gerado automaticamente pelo setup.sh — não editar manualmente
 
 # VITE_BASE_PATH é usado no build do frontend (Vite) via --build-arg
-VITE_BASE_PATH=/${nome}/
+VITE_BASE_PATH=${base_path}/
 
 # BASE_PATH é usado em runtime pelo backend para prefixar rotas
-BASE_PATH=/${nome}
+BASE_PATH=${base_path}
 
 # Chave secreta JWT — gerada no setup, idêntica em todos os projetos
 JWT_SECRET=${JWT_SECRET}
@@ -163,6 +165,7 @@ EOF
 }
 
 create_env "portal"
+create_env "portal-fake" "/portal"
 create_env "projeto-a"
 create_env "projeto-b"
 create_env "projeto-c"
