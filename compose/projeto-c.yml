@@ -25,6 +25,7 @@ services:
   projeto-c-backend:
     image: projeto-c-backend:current
     restart: unless-stopped
+    init: true
     env_file:
       - envs/projeto-c.env
     environment:

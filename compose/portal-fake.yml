@@ -22,6 +22,7 @@ services:
   portal-fake-backend:
     image: portal-fake-backend:current
     restart: unless-stopped
+    init: true
     env_file:
       - envs/portal-fake.env
     environment:

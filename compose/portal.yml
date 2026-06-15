@@ -25,6 +25,7 @@ services:
   portal-backend:
     image: portal-backend:current
     restart: unless-stopped
+    init: true
     env_file:
       - envs/portal.env
     environment:

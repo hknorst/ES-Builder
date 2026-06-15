@@ -25,6 +25,7 @@ services:
   projeto-d-backend:
     image: projeto-d-backend:current
     restart: unless-stopped
+    init: true
     env_file:
       - envs/projeto-d.env
     environment:
