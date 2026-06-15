@@ -30,6 +30,8 @@ services:
       - envs/projeto-a.env
     environment:
       BASE_PATH: /projeto-a
+    volumes:
+      - projeto-a-uploads:/app/uploads
     depends_on:
       projeto-a-db:
         condition: service_healthy
@@ -46,6 +48,7 @@ services:
 
 volumes:
   projeto-a-db-data:
+  projeto-a-uploads:
 
 networks:
   orq-net:
