@@ -165,7 +165,7 @@ EOF
 }
 
 create_env "portal"
-create_env "portal-fake" "/portal"
+create_env "portal-fake"
 create_env "projeto-a"
 create_env "projeto-b"
 create_env "projeto-c"

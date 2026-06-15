@@ -25,7 +25,7 @@ services:
     env_file:
       - envs/portal-fake.env
     environment:
-      BASE_PATH: /portal
+      BASE_PATH: /portal-fake
     depends_on:
       portal-fake-db:
         condition: service_healthy
