@@ -15,7 +15,6 @@ services:
     restart: unless-stopped
     ports:
       - "80:80"
-      - "8080:8080"
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
     networks:
