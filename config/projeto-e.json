@@ -2,7 +2,7 @@
   "backend": {
     "context": "backend",
     "dockerfile": "backend/Dockerfile",
-    "port": 3000
+    "port": 8061
   },
   "frontend": {
     "context": "frontend",
