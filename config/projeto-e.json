@@ -1,6 +1,6 @@
 {
   "backend": {
-    "context": ".",
+    "context": "backend",
     "dockerfile": "backend/Dockerfile",
     "port": 3000
   },

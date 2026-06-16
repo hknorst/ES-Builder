@@ -172,6 +172,7 @@ create_env "portal-fake"
 create_env "projeto-a"
 create_env "projeto-b"
 create_env "projeto-c"
+grep -q "^STORAGE_PATH=" "$ROOT_DIR/envs/projeto-c.env" || echo "STORAGE_PATH=/storage" >> "$ROOT_DIR/envs/projeto-c.env"
 create_env "projeto-d"
 create_env "projeto-e"
 
