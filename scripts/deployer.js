@@ -6,8 +6,12 @@ const { PROJETOS_PERMITIDOS, ROOT_DIR, run, loadState, saveState, log } = requir
 
 const BUILD_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutos por build
 
-// Retag de imagem Docker: origem → destino
+// Retag de imagem Docker: origem → destino. No-op se já apontam para o mesmo digest.
 function retagImage(from, to) {
+  const fromId = run(`docker inspect --format={{.Id}} ${from}`).trim();
+  let toId = null;
+  try { toId = run(`docker inspect --format={{.Id}} ${to}`).trim(); } catch {}
+  if (fromId === toId) return;
   run(`docker tag ${from} ${to}`);
 }
 
