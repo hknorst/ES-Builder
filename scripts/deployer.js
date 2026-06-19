@@ -18,9 +18,9 @@ function retagImage(from, to) {
 // Sobe apenas os serviços do projeto especificado
 function composeUp(project) {
   const composeFile = path.join(ROOT_DIR, 'compose', `${project}.yml`);
+  const base = `docker compose -f docker-compose.yml -f "${composeFile}"`;
   run(
-    `docker compose -f docker-compose.yml -f "${composeFile}" up -d ` +
-    `${project}-backend ${project}-frontend ${project}-db`,
+    `${base} up -d --force-recreate --no-deps ${project}-backend ${project}-frontend`,
     { cwd: ROOT_DIR }
   );
 }
